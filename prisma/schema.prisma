@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+}
+
+model Job {
+  id        String @id @default(cuid())
+  companyId String
+
+  title          String
+  location       String
+  employmentType String
+  salary         String
+  workingHours   String?
+  description    String
+  requirements   String?
+  holidays       String?
+  benefits       String?
+
+  sourceText String?
+
+  jobCategory      String?
+  position         String?
+  recruitmentCount Int?
+  locationDetail   String?
+  nearestStation   String?
+  access           String?
+  breakTime        String?
+  overtime         String?
+  transfer         String?
+  businessTrip     String?
+
+  salaryType         String?
+  minSalary          Int?
+  maxSalary          Int?
+  fixedOvertimePay   String?
+  fixedOvertimeHours String?
+  transportation     String?
+  bonus              String?
+  raise              String?
+  incentive          String?
+
+  annualHolidays String?
+  paidLeave      String?
+  longVacation   String?
+  otherLeave     String?
+
+  socialInsurance     String?
+  employmentInsurance String?
+  workersCompensation String?
+  pension             String?
+
+  requiredConditions  String?
+  preferredConditions String?
+  qualifications      String?
+  experience          String?
+  education           String?
+  ageCondition        String?
+  pcSkills            String?
+  driverLicense       String?
+
+  applicationMethod String?
+  selectionProcess  String?
+  interviewCount    String?
+  interviewLocation String?
+  requiredDocuments String?
+  recruiterName     String?
+  recruiterEmail    String?
+  recruiterPhone    String?
+
+  status    JobStatus @default(DRAFT)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  createdById String?
+  updatedById String?
+
+  company       Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy     User?           @relation("JobCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?           @relation("JobUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  mediaListings JobMedia[]
+  images        JobImage[]
+  tags          JobTagRelation[]
+  auditLogs     AuditLog[]
+}
+
+model JobMedia {
+  id     String      @id @default(cuid())
+  jobId  String
+  media  MediaType
+  status MediaStatus @default(NOT_PUBLISHED)
+
+  externalJobId String?
+  listingUrl    String?
+  publishedAt   DateTime?
+  closedAt      DateTime?
+  errorMessage  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job     Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  content MediaListingContent?
+
+  @@unique([jobId, media])
+}
+
+model MediaListingContent {
+  id         String @id @default(cuid())
+  jobMediaId String @unique
+
+  title          String
+  catchCopy      String?
+  description    String
+  salary         String?
+  location       String?
+  employmentType String?
+  workingHours   String?
+  holidays       String?
+  benefits       String?
+  requirements   String?
+  application    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobMedia JobMedia @relation(fields: [jobMediaId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(EDITOR)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdJobs Job[] @relation("JobCreatedBy")
+  updatedJobs Job[] @relation("JobUpdatedBy")
+  auditLogs   AuditLog[]
+  sessions    Session[]
+
+  @@index([email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  jobId     String?
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  job  Job?  @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([jobId])
+  @@index([createdAt])
+}
+model JobTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs JobTagRelation[]
+}
+
+model JobTagRelation {
+  jobId String
+  tagId String
+
+  job Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tag JobTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([jobId, tagId])
+  @@index([tagId])
+}
+
+model JobImage {
+  id    String @id @default(cuid())
+  jobId String
+
+  imageUrl String
+  prompt   String?
+  isMain  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+enum JobStatus {
+  DRAFT
+  READY
+  PUBLISHED
+  CLOSED
+}
+
+enum MediaType {
+  INDEED
+  JOB_BOX
+  ENGAGE
+  OTHER
+}
+
+enum MediaStatus {
+  NOT_PUBLISHED
+  PENDING
+  PUBLISHED
+  ERROR
+  CLOSED
+}

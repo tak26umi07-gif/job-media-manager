@@ -1,0 +1,663 @@
+﻿import Link from "next/link";
+import { notFound } from "next/navigation";
+import DeleteJobButton from "./DeleteJobButton";
+import MediaManageButton from "./MediaManageButton";
+import { prisma } from "@/lib/prisma";
+
+type PageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+function getJobStatus(status: string) {
+  switch (status) {
+    case "DRAFT":
+      return "下書き";
+    case "READY":
+      return "掲載準備完了";
+    case "PUBLISHED":
+      return "掲載中";
+    case "CLOSED":
+      return "終了";
+    default:
+      return status;
+  }
+}
+
+function getMediaName(media: string) {
+  switch (media) {
+    case "INDEED":
+      return "Indeed";
+    case "JOB_BOX":
+      return "求人ボックス";
+    case "ENGAGE":
+      return "engage";
+    case "OTHER":
+      return "その他";
+    default:
+      return media;
+  }
+}
+
+function getMediaStatus(status: string) {
+  switch (status) {
+    case "NOT_PUBLISHED":
+      return "未掲載";
+    case "PENDING":
+      return "掲載処理中";
+    case "PUBLISHED":
+      return "掲載中";
+    case "ERROR":
+      return "エラー";
+    case "CLOSED":
+      return "掲載終了";
+    default:
+      return status;
+  }
+}
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number | null | undefined;
+}) {
+  return (
+    <div className="rounded-lg bg-slate-50 p-4">
+      <p className="text-xs font-medium text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-slate-900">
+        {value !== null &&
+        value !== undefined &&
+        String(value).trim() !== ""
+          ? String(value)
+          : "未設定"}
+      </p>
+    </div>
+  );
+}
+
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="mb-5 text-lg font-semibold text-slate-900">
+        {title}
+      </h2>
+
+      {children}
+    </section>
+  );
+}
+
+export default async function JobDetailPage({
+  params,
+}: PageProps) {
+  const { id } = await params;
+
+  const job = await prisma.job.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      company: true,
+      mediaListings: true,
+    },
+  });
+
+  if (!job) {
+    notFound();
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+
+      {/* ヘッダー */}
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-6 py-3">
+
+          <div>
+            <h1 className="text-xl font-bold">
+              求人詳細
+            </h1>
+
+            <p className="mt-1 text-xs text-slate-500">
+              求人情報・詳細情報・媒体掲載状況を管理します。
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+
+            <Link
+              href="/jobs"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            >
+              求人一覧
+            </Link>
+
+            <Link
+              href={`/jobs/${job.id}/media`}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            >
+              媒体管理
+            </Link>
+
+            <Link
+              href={`/jobs/${job.id}/edit`}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+            >
+              編集
+            </Link>
+
+            <DeleteJobButton jobId={job.id} />
+
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl space-y-6 p-6">
+
+        {/* 求人タイトル */}
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 md:flex-row">
+
+            <div>
+              <p className="mb-2 text-sm text-slate-500">
+                {job.company.name}
+              </p>
+
+              <h2 className="text-2xl font-bold">
+                {job.title}
+              </h2>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+
+                {job.jobCategory && (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                    {job.jobCategory}
+                  </span>
+                )}
+
+                {job.position && (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                    {job.position}
+                  </span>
+                )}
+
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                  {job.employmentType}
+                </span>
+
+              </div>
+            </div>
+
+            <div>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+                {getJobStatus(job.status)}
+              </span>
+            </div>
+
+          </div>
+        </section>
+
+        {/* 基本情報 */}
+        <DetailSection title="基本情報">
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <DetailItem
+              label="会社名"
+              value={job.company.name}
+            />
+
+            <DetailItem
+              label="職種カテゴリ"
+              value={job.jobCategory}
+            />
+
+            <DetailItem
+              label="ポジション"
+              value={job.position}
+            />
+
+            <DetailItem
+              label="募集人数"
+              value={job.recruitmentCount}
+            />
+
+            <DetailItem
+              label="雇用形態"
+              value={job.employmentType}
+            />
+
+            <DetailItem
+              label="勤務地"
+              value={job.location}
+            />
+
+            <DetailItem
+              label="勤務地詳細"
+              value={job.locationDetail}
+            />
+
+            <DetailItem
+              label="最寄り駅"
+              value={job.nearestStation}
+            />
+
+            <DetailItem
+              label="アクセス"
+              value={job.access}
+            />
+
+          </div>
+        </DetailSection>
+
+        {/* 勤務条件 */}
+        <DetailSection title="勤務条件">
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <DetailItem
+              label="勤務時間"
+              value={job.workingHours}
+            />
+
+            <DetailItem
+              label="休憩時間"
+              value={job.breakTime}
+            />
+
+            <DetailItem
+              label="残業"
+              value={job.overtime}
+            />
+
+            <DetailItem
+              label="転勤"
+              value={job.transfer}
+            />
+
+            <DetailItem
+              label="出張"
+              value={job.businessTrip}
+            />
+
+            <DetailItem
+              label="交通費"
+              value={job.transportation}
+            />
+
+          </div>
+        </DetailSection>
+
+        {/* 給与 */}
+        <DetailSection title="給与・報酬">
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <DetailItem
+              label="給与"
+              value={job.salary}
+            />
+
+            <DetailItem
+              label="給与形態"
+              value={job.salaryType}
+            />
+
+            <DetailItem
+              label="給与下限"
+              value={
+                job.minSalary
+                  ? `${job.minSalary.toLocaleString()}円`
+                  : null
+              }
+            />
+
+            <DetailItem
+              label="給与上限"
+              value={
+                job.maxSalary
+                  ? `${job.maxSalary.toLocaleString()}円`
+                  : null
+              }
+            />
+
+            <DetailItem
+              label="固定残業代"
+              value={job.fixedOvertimePay}
+            />
+
+            <DetailItem
+              label="固定残業時間"
+              value={job.fixedOvertimeHours}
+            />
+
+            <DetailItem
+              label="賞与"
+              value={job.bonus}
+            />
+
+            <DetailItem
+              label="昇給"
+              value={job.raise}
+            />
+
+            <DetailItem
+              label="インセンティブ"
+              value={job.incentive}
+            />
+
+          </div>
+        </DetailSection>
+
+        {/* 仕事内容 */}
+        <DetailSection title="仕事内容">
+
+          <div className="space-y-6">
+
+            <div>
+              <h3 className="mb-2 text-sm font-semibold">
+                仕事内容
+              </h3>
+
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                  {job.description || "未設定"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-2 text-sm font-semibold">
+                応募条件
+              </h3>
+
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                  {job.requirements || "未設定"}
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </DetailSection>
+
+        {/* 応募条件詳細 */}
+        <DetailSection title="応募条件・資格">
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <DetailItem
+              label="必須条件"
+              value={job.requiredConditions}
+            />
+
+            <DetailItem
+              label="歓迎条件"
+              value={job.preferredConditions}
+            />
+
+            <DetailItem
+              label="資格"
+              value={job.qualifications}
+            />
+
+            <DetailItem
+              label="経験"
+              value={job.experience}
+            />
+
+            <DetailItem
+              label="学歴"
+              value={job.education}
+            />
+
+            <DetailItem
+              label="年齢条件"
+              value={job.ageCondition}
+            />
+
+            <DetailItem
+              label="PCスキル"
+              value={job.pcSkills}
+            />
+
+            <DetailItem
+              label="運転免許"
+              value={job.driverLicense}
+            />
+
+          </div>
+        </DetailSection>
+
+        {/* 休日 */}
+        <DetailSection title="休日・休暇">
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <DetailItem
+              label="休日・休暇"
+              value={job.holidays}
+            />
+
+            <DetailItem
+              label="年間休日"
+              value={job.annualHolidays}
+            />
+
+            <DetailItem
+              label="有給休暇"
+              value={job.paidLeave}
+            />
+
+            <DetailItem
+              label="長期休暇"
+              value={job.longVacation}
+            />
+
+            <DetailItem
+              label="その他休暇"
+              value={job.otherLeave}
+            />
+
+          </div>
+        </DetailSection>
+
+        {/* 福利厚生 */}
+        <DetailSection title="福利厚生・保険">
+
+          <div className="space-y-5">
+
+            <div>
+              <h3 className="mb-2 text-sm font-semibold">
+                福利厚生・待遇
+              </h3>
+
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                  {job.benefits || "未設定"}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+              <DetailItem
+                label="社会保険"
+                value={job.socialInsurance}
+              />
+
+              <DetailItem
+                label="雇用保険"
+                value={job.employmentInsurance}
+              />
+
+              <DetailItem
+                label="労災保険"
+                value={job.workersCompensation}
+              />
+
+              <DetailItem
+                label="年金"
+                value={job.pension}
+              />
+
+            </div>
+
+          </div>
+        </DetailSection>
+
+        {/* 選考 */}
+        <DetailSection title="応募・選考情報">
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <DetailItem
+              label="応募方法"
+              value={job.applicationMethod}
+            />
+
+            <DetailItem
+              label="選考フロー"
+              value={job.selectionProcess}
+            />
+
+            <DetailItem
+              label="面接回数"
+              value={job.interviewCount}
+            />
+
+            <DetailItem
+              label="面接場所"
+              value={job.interviewLocation}
+            />
+
+            <DetailItem
+              label="必要書類"
+              value={job.requiredDocuments}
+            />
+
+            <DetailItem
+              label="採用担当者"
+              value={job.recruiterName}
+            />
+
+            <DetailItem
+              label="採用担当メール"
+              value={job.recruiterEmail}
+            />
+
+            <DetailItem
+              label="採用担当電話"
+              value={job.recruiterPhone}
+            />
+
+          </div>
+        </DetailSection>
+
+        {/* 元案件情報 */}
+        <DetailSection title="元案件情報">
+
+          <p className="mb-4 text-xs text-slate-500">
+            新規求人登録時に貼り付けた原文です。AI解析後の求人情報とは別に保存されています。
+          </p>
+
+          <div className="max-h-[500px] overflow-auto rounded-lg bg-slate-50 p-5">
+            <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+              {job.sourceText || "元案件情報は保存されていません。"}
+            </p>
+          </div>
+
+        </DetailSection>
+
+        {/* 媒体掲載状況 */}
+        <DetailSection title="媒体掲載状況">
+
+          <p className="mb-5 text-sm text-slate-500">
+            各求人媒体への掲載状態を管理します。
+          </p>
+
+          <div className="space-y-3">
+
+            {job.mediaListings.map((listing) => (
+
+              <div
+                key={listing.id}
+                className="flex flex-col justify-between gap-3 rounded-lg border border-slate-200 p-4 md:flex-row md:items-center"
+              >
+
+                <div>
+                  <p className="font-medium">
+                    {getMediaName(listing.media)}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    {listing.externalJobId
+                      ? `外部求人ID: ${listing.externalJobId}`
+                      : "外部求人IDなし"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+
+                  <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
+                    {getMediaStatus(listing.status)}
+                  </span>
+
+                  <MediaManageButton
+                    jobId={job.id}
+                    listing={{
+                      id: listing.id,
+                      media: listing.media,
+                      status: listing.status,
+                      externalJobId: listing.externalJobId,
+                      listingUrl: listing.listingUrl,
+                      publishedAt: listing.publishedAt,
+                      closedAt: listing.closedAt,
+                      errorMessage: listing.errorMessage,
+                    }}
+                  />
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+        </DetailSection>
+
+        {/* 登録日時 */}
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+
+          <div className="flex flex-col gap-2 text-xs text-slate-500 md:flex-row md:justify-between">
+
+            <span>
+              登録日時：
+              {new Date(job.createdAt).toLocaleString("ja-JP")}
+            </span>
+
+            <span>
+              最終更新：
+              {new Date(job.updatedAt).toLocaleString("ja-JP")}
+            </span>
+
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  );
+}
