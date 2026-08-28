@@ -224,7 +224,24 @@ const [aiLoading, setAiLoading] = useState(false);
         setTags(
           Array.isArray(job.tags)
             ? job.tags
-                .map((relation: any) => relation.tag?.name)
+                .map((relation: unknown) => {
+                  if (
+                    typeof relation !== "object" ||
+                    relation === null
+                  ) {
+                    return undefined;
+                  }
+
+                  const tag = (relation as {
+                    tag?: {
+                      name?: unknown;
+                    };
+                  }).tag;
+
+                  return typeof tag?.name === "string"
+                    ? tag.name
+                    : undefined;
+                })
                 .filter(
                   (name: unknown): name is string =>
                     typeof name === "string" &&
@@ -457,7 +474,14 @@ const [aiLoading, setAiLoading] = useState(false);
       },
       body: JSON.stringify({
         job: form,
-        availableTags: tagsData.tags.map((t: any) => t.name),
+        availableTags: tagsData.tags
+          .filter(
+            (t: unknown): t is { name: string } =>
+              typeof t === "object" &&
+              t !== null &&
+              typeof (t as { name?: unknown }).name === "string"
+          )
+          .map((t: { name: string }) => t.name),
       }),
     });
 
@@ -1180,6 +1204,8 @@ const handleSubmit = async (
     </main>
   );
 }
+
+
 
 
 

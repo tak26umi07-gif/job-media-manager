@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type MenuItem = {
   href: string;
@@ -76,9 +76,6 @@ export default function Sidebar() {
     );
   };
 
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   return (
     <>
@@ -200,3 +197,4 @@ export default function Sidebar() {
     </>
   );
 }
+

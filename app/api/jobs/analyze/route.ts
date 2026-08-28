@@ -313,17 +313,37 @@ export async function POST(request: Request) {
         : Array.isArray(data.output)
           ? data.output
               .filter(
-                (item: any) =>
-                  item?.type === "message" &&
-                  Array.isArray(item?.content)
+                (item: unknown): item is {
+                  type?: unknown;
+                  content?: unknown;
+                } =>
+                  typeof item === "object" &&
+                  item !== null &&
+                  (item as { type?: unknown }).type === "message" &&
+                  Array.isArray((item as { content?: unknown }).content)
               )
-              .flatMap((item: any) => item.content)
+              .flatMap(
+                (item: {
+                  type?: unknown;
+                  content: unknown[];
+                }) => item.content
+              )
               .filter(
-                (content: any) =>
-                  content?.type === "output_text" &&
-                  typeof content?.text === "string"
+                (content: unknown): content is {
+                  type?: unknown;
+                  text?: unknown;
+                } =>
+                  typeof content === "object" &&
+                  content !== null &&
+                  (content as { type?: unknown }).type === "output_text" &&
+                  typeof (content as { text?: unknown }).text === "string"
               )
-              .map((content: any) => content.text)
+              .map(
+                (content: {
+                  type?: unknown;
+                  text?: unknown;
+                }) => content.text as string
+              )
               .join("")
           : "";
 
@@ -417,4 +437,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
 
