@@ -282,17 +282,21 @@ const [selectedAiFields, setSelectedAiFields] =
         setLoading(true);
         setError("");
 
-        const response = await fetch(`/api/jobs/${id}`);
-        const data = await response.json();
+        // -----------------------------------------
+        // ① 求人本体を取得
+        // -----------------------------------------
+        const jobResponse = await fetch(`/api/jobs/${id}`);
+        const jobData = await jobResponse.json();
 
-        if (!response.ok) {
+        if (!jobResponse.ok) {
           throw new Error(
-            data.error || "求人情報の取得に失敗しました"
+            jobData.error ||
+              "求人情報の取得に失敗しました"
           );
         }
 
         const loadedJob: Job =
-          data.data ?? data.job;
+          jobData.data ?? jobData.job;
 
         if (!loadedJob) {
           throw new Error(
@@ -302,99 +306,214 @@ const [selectedAiFields, setSelectedAiFields] =
 
         setJob(loadedJob);
 
+        // -----------------------------------------
+        // ② 媒体別掲載原稿を取得
+        // -----------------------------------------
+        const mediaResponse = await fetch(
+          `/api/jobs/${id}/media/${media}`
+        );
+
+        const mediaData = await mediaResponse.json();
+
+        if (!mediaResponse.ok) {
+          throw new Error(
+            mediaData.error ||
+              "媒体掲載原稿の取得に失敗しました"
+          );
+        }
+
+        const savedContent =
+          mediaData?.media?.content ?? null;
+
+        console.log(
+          "=== MEDIA CONTENT LOAD ==="
+        );
+        console.log(
+          "media:",
+          media
+        );
+        console.log(
+          "savedContent:",
+          savedContent
+        );
+
+        // -----------------------------------------
+        // ③ 保存済み原稿があれば優先
+        // -----------------------------------------
         setContent({
-          title: loadedJob.title || "",
+          title:
+            savedContent?.title ||
+            loadedJob.title ||
+            "",
+
           category: "",
-          catchCopy: "",
+
+          catchCopy:
+            savedContent?.catchCopy ||
+            "",
+
           companyName:
-            loadedJob.company?.name || "",
+            loadedJob.company?.name ||
+            "",
 
           postalCode: "",
-          location: loadedJob.location || "",
+
+          location:
+            savedContent?.location ||
+            loadedJob.location ||
+            "",
+
           address: "",
+
           access: "",
 
           employmentType:
-            loadedJob.employmentType || "",
+            savedContent?.employmentType ||
+            loadedJob.employmentType ||
+            "",
 
           salaryType: "月給",
+
           salaryMin: "",
+
           salaryMax: "",
+
           salaryDescription:
-            loadedJob.salary || "",
+            savedContent?.salary ||
+            loadedJob.salary ||
+            "",
 
           fixedOvertime: "なし",
+
           fixedOvertimeAmount: "",
 
           socialInsurance: "",
 
           probation: "なし",
+
           probationPeriod: "",
+
           probationCondition: "",
 
           description:
-            loadedJob.description || "",
+            savedContent?.description ||
+            loadedJob.description ||
+            "",
+
           appeal: "",
+
           requirements:
-            loadedJob.requirements || "",
+            savedContent?.requirements ||
+            loadedJob.requirements ||
+            "",
+
           workingHours:
-            loadedJob.workingHours || "",
+            savedContent?.workingHours ||
+            loadedJob.workingHours ||
+            "",
+
           holidays:
-            loadedJob.holidays || "",
+            savedContent?.holidays ||
+            loadedJob.holidays ||
+            "",
+
           benefits:
-            loadedJob.benefits || "",
+            savedContent?.benefits ||
+            loadedJob.benefits ||
+            "",
+
           other: "",
 
           tags: [],
 
           applicationMethod:
+            savedContent?.application ||
             "Indeedカンタン応募",
+
           applicationEmail: "",
+
           applicationPhone: "",
 
           recruitmentCount: "",
+
           locationDetail: "",
+
           nearestStation: "",
+
           breakTime: "",
+
           overtime: "",
+
           transfer: "",
+
           businessTrip: "",
+
           fixedOvertimePay: "",
+
           fixedOvertimeHours: "",
+
           transportation: "",
+
           bonus: "",
+
           raise: "",
+
           incentive: "",
+
           annualHolidays: "",
+
           paidLeave: "",
+
           longVacation: "",
+
           otherLeave: "",
+
           employmentInsurance: "",
+
           workersCompensation: "",
+
           pension: "",
+
           requiredConditions: "",
+
           preferredConditions: "",
+
           qualifications: "",
+
           experience: "",
+
           education: "",
+
           ageCondition: "",
+
           pcSkills: "",
+
           driverLicense: "",
+
           selectionProcess: "",
+
           interviewCount: "",
+
           interviewLocation: "",
+
           requiredDocuments: "",
+
           recruiterName: "",
+
           recruiterEmail: "",
+
           recruiterPhone: "",
         });
       } catch (err) {
-        console.error(err);
+        console.error(
+          "媒体掲載原稿読み込みエラー:",
+          err
+        );
 
         setError(
           err instanceof Error
             ? err.message
-            : "求人情報の取得に失敗しました"
+            : "媒体掲載原稿の取得に失敗しました"
         );
       } finally {
         setLoading(false);
@@ -2046,6 +2165,7 @@ function PreviewSection({
     </section>
   );
 }
+
 
 
 
